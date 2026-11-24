@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Lab 7 - Chained APIs</title>
+  <style>
+    body {
+      font-family: "Trebuchet MS", sans-serif;
+      background-color: #161b22;
+      color: #f0f6fc;
+      margin: 0;
+      padding: 32px 16px;
+    }
+    .wrapper {
+      max-width: 640px;
+      margin: 0 auto;
+    }
+    .header-card {
+      background-color: #21262d;
+      border: 1px solid #30363d;
+      border-top: 5px solid #f59e0b;
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+    }
+    h1 {
+      margin: 0 0 6px 0;
+      font-size: 26px;
+      color: #fbbf24;
+    }
+    .sub {
+      margin: 0;
+      color: #9ba3b0;
+      font-size: 14px;
+    }
+    .api-card {
+      background-color: #1f242c;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 14px;
+    }
+    .badge {
+      display: inline-block;
+      background-color: #f59e0b;
+      color: #111827;
+      font-weight: bold;
+      font-size: 12px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      margin-bottom: 8px;
+    }
+    h2 {
+      margin: 0 0 8px 0;
+      font-size: 18px;
+      color: #ffffff;
+    }
+    p {
+      margin: 4px 0;
+      color: #d0d7de;
+      line-height: 1.5;
+    }
+    .var-note {
+      font-size: 12px;
+      color: #8b949e;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header-card">
+      <h1>Application Layer Lab 7</h1>
+      <p class="sub">Chained API requests using plain HTML, CSS, and JavaScript</p>
+    </div>
+
+    <div class="api-card">
+      <span class="badge">STEP 1</span>
+      <h2>Public IP Address</h2>
+      <p id="ipBox">Fetching IP...</p>
+      <p class="var-note">Output variable: <code>publicIp</code></p>
+    </div>
+
+    <div class="api-card">
+      <span class="badge">STEP 2</span>
+      <h2>Location Lookup</h2>
+      <p id="locBox">Waiting for IP...</p>
+      <p class="var-note">Uses <code>publicIp</code> from Step 1 &rarr; outputs city, country, coordinates</p>
+    </div>
+
+    <div class="api-card">
+      <span class="badge">STEP 3</span>
+      <h2>Weather via IP</h2>
+      <p id="weatherIpBox">Waiting for IP &amp; coordinates...</p>
+      <p class="var-note">Uses <code>publicIp</code> from Step 1</p>
+    </div>
+
+    <div class="api-card">
+      <span class="badge">STEP 4</span>
+      <h2>Weather via Location</h2>
+      <p id="weatherLocBox">Waiting for location variables...</p>
+      <p class="var-note">Uses location variables (<code>lat</code>, <code>lon</code>, <code>cityName</code>) from Step 2</p>
+    </div>
+  </div>
+
+  <script>
+    var publicIp = "";
+    var cityName = "";
+    var countryName = "";
+    var ispName = "";
+    var lat = "";
+    var lon = "";
+
+    // API 1: Get public IP address
+    fetch("https://api.ipify.org?format=json")
+      .then(function(res) {
+        return res.json();
+      })
+      .then(function(data1) {
+        publicIp = data1.ip;
+        document.getElementById("ipBox").innerHTML = "Your IP: <strong>" + publicIp + "</strong>";
+
+        // API 2: Get location using API 1 result (publicIp)
+        return fetch("https://ipwho.is/" + publicIp);
+      })
+      .then(function(res) {
+        return res.json();
+      })
+      .then(function(data2) {
+        cityName = data2.city;
+        countryName = data2.country;
+        lat = data2.latitude;
+        lon = data2.longitude;
+        ispName = data2.connection && data2.connection.isp ? data2.connection.isp : "Unknown ISP";
+
+        document.getElementById("locBox").innerHTML =
+          "<strong>" + cityName + ", " + countryName + "</strong><br>" +
+          "ISP: " + ispName + "<br>" +
+          "Coordinates: " + lat + ", " + lon;
+
+        // API 3: Get weather using API 1 result (publicIp)
+        return fetch("https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon + "&current_weather=true&ip=" + publicIp);
+      })
+      .then(function(res) {
+        return res.json();
+      })
+      .then(function(data3) {
+        var w3 = data3.current_weather;
+        document.getElementById("weatherIpBox").innerHTML =
+          "Temperature: <strong>" + w3.temperature + "&deg;C</strong> | Wind: " + w3.windspeed + " km/h<br>" +
+          "Passed IP variable: " + publicIp;
+
+        // API 4: Get weather using API 2 result (lat and lon)
+        return fetch("https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon + "&current_weather=true");
+      })
+      .then(function(res) {
+        return res.json();
+      })
+      .then(function(data4) {
+        var w4 = data4.current_weather;
+        document.getElementById("weatherLocBox").innerHTML =
+          "Temperature: <strong>" + w4.temperature + "&deg;C</strong> | Wind: " + w4.windspeed + " km/h<br>" +
+          "Location from API 2: " + cityName + " (" + lat + ", " + lon + ")";
+      })
+      .catch(function(err) {
+        console.log("API error:", err);
+        document.getElementById("ipBox").innerHTML = "Error loading data. Press F12 to check Console.";
+      });
+  </script>
+</body>
+</html>
