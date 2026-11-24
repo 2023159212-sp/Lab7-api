@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Lab 7 - My API Page</title>
+  <style>
+    body {
+      font-family: Verdana, sans-serif;
+      background-color: #eef6f9;
+      color: #1f2d3d;
+      margin: 30px;
+    }
+    .page-box {
+      max-width: 600px;
+      margin: auto;
+      background-color: #ffffff;
+      border: 2px solid #90c2d4;
+      border-radius: 10px;
+      padding: 24px;
+    }
+    h1 {
+      color: #0e5a73;
+      margin-top: 0;
+    }
+    .info-box {
+      background-color: #f7fbfd;
+      border-left: 4px solid #2b8cbe;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+    }
+    h2 {
+      font-size: 18px;
+      margin: 0 0 6px 0;
+      color: #0e5a73;
+    }
+    p {
+      margin: 4px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-box">
+    <h1>Lab 7: IP, Location &amp; Weather</h1>
+    <p>Using basic JavaScript and 4 chained API requests:</p>
+    <hr>
+
+    <div class="info-box">
+      <h2>1. Your Public IP (API 1)</h2>
+      <p id="ipText">Loading...</p>
+    </div>
+
+    <div class="info-box">
+      <h2>2. Your Location — using API 1 IP (API 2)</h2>
+      <p id="locationText">Loading...</p>
+    </div>
+
+    <div class="info-box">
+      <h2>3. Weather via IP — using API 1 IP (API 3)</h2>
+      <p id="weatherIpText">Loading...</p>
+    </div>
+
+    <div class="info-box">
+      <h2>4. Weather via Location — using API 2 Location (API 4)</h2>
+      <p id="weatherLocText">Loading...</p>
+    </div>
+  </div>
+
+  <script>
+    var publicIp = "";
+    var cityName = "";
+    var countryName = "";
+    var lat = "";
+    var lon = "";
+
+    // API 1: Get public IP address
+    fetch("https://api.ipify.org?format=json")
+      .then(function(response) {
+        return response.json();
+      })
+      .then(function(data1) {
+        publicIp = data1.ip;
+        document.getElementById("ipText").innerHTML = "IP Address: <b>" + publicIp + "</b>";
+
+        // API 2: Find location using API 1 variable (publicIp)
+        return fetch("https://ipwho.is/" + publicIp);
+      })
+      .then(function(response) {
+        return response.json();
+      })
+      .then(function(data2) {
+        cityName = data2.city;
+        countryName = data2.country;
+        lat = data2.latitude;
+        lon = data2.longitude;
+
+        var isp = data2.connection && data2.connection.isp ? data2.connection.isp : "N/A";
+        document.getElementById("locationText").innerHTML =
+          "City: <b>" + cityName + "</b><br>" +
+          "Country: <b>" + countryName + "</b><br>" +
+          "ISP: <b>" + isp + "</b>";
+
+        // API 3: Weather using API 1 variable (publicIp)
+        return fetch("https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon + "&current_weather=true&ip=" + publicIp);
+      })
+      .then(function(response) {
+        return response.json();
+      })
+      .then(function(data3) {
+        var temp3 = data3.current_weather.temperature;
+        var wind3 = data3.current_weather.windspeed;
+        document.getElementById("weatherIpText").innerHTML =
+          "Temperature: <b>" + temp3 + "°C</b> (Wind: " + wind3 + " km/h)<br>" +
+          "Passed IP variable: " + publicIp;
+
+        // API 4: Weather using API 2 variables (lat and lon)
+        return fetch("https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon + "&current_weather=true");
+      })
+      .then(function(response) {
+        return response.json();
+      })
+      .then(function(data4) {
+        var temp4 = data4.current_weather.temperature;
+        var wind4 = data4.current_weather.windspeed;
+        document.getElementById("weatherLocText").innerHTML =
+          "Temperature: <b>" + temp4 + "°C</b> (Wind: " + wind4 + " km/h)<br>" +
+          "Location used: " + cityName + " (" + lat + ", " + lon + ")";
+      })
+      .catch(function(err) {
+        console.log("Error:", err);
+        document.getElementById("ipText").innerHTML = "Could not load API data. Check Console (F12).";
+      });
+  </script>
+</body>
+</html>
